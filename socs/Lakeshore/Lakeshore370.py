@@ -192,7 +192,7 @@ class LS370:
         self.baudrate = baudrate
         self.timeout = timeout
 
-        print(self.baudrate)
+        print("Baud rate:", self.baudrate)
 
         self.com = serial.Serial(self.port, self.baudrate, self._bytesize, self._parity, self._stopbits, self.timeout)
         self.num_channels = num_channels

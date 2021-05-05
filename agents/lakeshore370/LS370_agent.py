@@ -72,7 +72,7 @@ class LS370_Agent:
     """Agent to connect to a single Lakeshore 370 device.
 
     Args:
-        name (ApplicationSession): ApplicationSession for the Agent.
+        agent (ApplicationSession): ApplicationSession for the Agent.
         port (str): Serial port for the 370 device, e.g. '/dev/ttyUSB2'
         fake_data (bool, optional): generates random numbers without connecting
             to LS if True.
@@ -84,7 +84,7 @@ class LS370_Agent:
             ensures at least one second of data collection at the end of a scan.
 
     """
-    def __init__(self, agent, name, port, fake_data=False, dwell_time_delay=0):
+    def __init__(self, agent, port, fake_data=False, dwell_time_delay=0):
 
         # self._acq_proc_lock is held for the duration of the acq Process.
         # Tasks that require acq to not be running, at all, should use
@@ -98,7 +98,6 @@ class LS370_Agent:
         # immediately tries to reacquire.
         self._lock = YieldingLock(default_timeout=5)
 
-        self.name = name
         self.port = port
         self.fake_data = fake_data
         self.dwell_time_delay = dwell_time_delay
@@ -753,26 +752,19 @@ if __name__ == '__main__':
     # Start logging
     txaio.start_logging(level=os.environ.get("LOGLEVEL", "info"))
 
-    # Get the default ocs argument parser.
+    # Parse arguments
     site_parser = site_config.add_arguments()
-
     parser = make_parser(site_parser)
-
-    # Parse comand line.
     args = parser.parse_args()
-
-    # Automatically acquire data if requested (default)
-    init_params = False
-    if args.auto_acquire:
-        init_params = {'auto_acquire': True}
-
-    # Interpret options in the context of site_config.
     site_config.reparse_args(args, 'Lakeshore370Agent')
-    print('I am in charge of device with serial number: %s' % args.serial_number)
+
+    # Configure automatically acquiring data
+    init_params = {'auto_acquire': args.auto_acquire}
 
     agent, runner = ocs_agent.init_site_agent(args)
 
-    lake_agent = LS370_Agent(agent, args.serial_number, args.port,
+    lake_agent = LS370_Agent(agent,
+                             args.port,
                              fake_data=args.fake_data,
                              dwell_time_delay=args.dwell_time_delay)
 
