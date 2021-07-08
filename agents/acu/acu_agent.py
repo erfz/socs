@@ -96,14 +96,12 @@ class ACUAgent:
         agg_params = {'frame_length': 60}
         self.agent.register_feed('acu_status_summary',
                                  record=True,
-                                 agg_params={'frame_length': 60,
-                                             'exclude_influx': True
-                                             },
+                                 agg_params=agg_params,
                                  buffer_time=1)
         self.agent.register_feed('acu_status_full',
                                  record=True,
                                  agg_params={'frame_length': 60,
-                                             'exclude_influx': True
+                                             'exclude_influx': False
                                              },
                                  buffer_time=1)
         self.agent.register_feed('acu_status_influx',
@@ -115,13 +113,14 @@ class ACUAgent:
         self.agent.register_feed('acu_udp_stream',
                                  record=True,
                                  agg_params={'frame_length': 60,
-                                             'exclude_influx': True
+                                             'exclude_influx': False
                                              },
                                  buffer_time=1)
         self.agent.register_feed('acu_broadcast_influx',
                                  record=False,
                                  agg_params={'frame_length': 60,
-                                             'exclude_aggregator': True
+                                             'exclude_aggregator': True,
+                                             'exclude_influx': True
                                              },
                                  buffer_time=1)
         self.agent.register_feed('acu_health_check',
@@ -139,7 +138,7 @@ class ACUAgent:
         agent.register_task('go_to', self.go_to, blocking=False)
         agent.register_task('run_specified_scan',
                             self.run_specified_scan,
-                            locking=False)
+                            blocking=False)
         agent.register_task('set_boresight',
                             self.set_boresight,
                             blocking=False)
@@ -242,8 +241,8 @@ class ACUAgent:
                           'Elevation mode',
                           'Elevation current position',
                           'Elevation current velocity',
-                          # 'Boresight mode',
-                          # 'Boresight current position',
+                          'Boresight mode',
+                          'Boresight current position',
                           'Qty of free program track stack positions',
                           ]
         mode_key = {'Stop': 0,
@@ -251,6 +250,7 @@ class ACUAgent:
                     'ProgramTrack': 2,
                     'Stow': 3,
                     'SurvivalMode': 4,
+                    'Rate': 5,
                     }
         tfn_key = {'None': 0,
                    'False': 0,
@@ -272,19 +272,19 @@ class ACUAgent:
 
             query_t = now
             try:
-                # j = yield self.acu.http.Values('DataSets.StatusSATPDetailed8100')
-                j = yield self.acu.http.Values('DataSets.StatusCCATDetailed8100')
+                j = yield self.acu.http.Values('DataSets.StatusSATPDetailed8100')
+               # j = yield self.acu.http.Values('DataSets.StatusCCATDetailed8100')
                 n_ok += 1
                 session.data = j
             except Exception as e:
                 # Need more error handling here...
                 errormsg = {'aculib_error_message': str(e)}
-                self.log.error(errormsg)
-                acu_error = {'timestamp': time.time(),
-                             'block_name': 'ACU_error',
-                             'data': errormsg
-                             }
-                self.agent.publish_to_feed('acu_error', acu_error)
+                self.log.error(e)
+#                acu_error = {'timestamp': time.time(),
+#                             'block_name': 'ACU_error',
+#                             'data': errormsg
+#                             }
+#                self.agent.publish_to_feed('acu_error', acu_error)
                 yield dsleep(1)
 
             for (key, value) in session.data.items():
@@ -345,7 +345,7 @@ class ACUAgent:
         if not ok:
             return ok, msg
         session.set_status('running')
-        FMT = '<iddddd'
+        FMT = '<idddddddddddd'
         FMT_LEN = struct.calcsize(FMT)
         UDP_PORT = self.acu_config['PositionBroadcast_target'].split(':')[1]
         udp_data = []
@@ -403,14 +403,28 @@ class ACUAgent:
                     sec = d[1]
                     data_ctime = gyear + gday + sec
                     azimuth_corrected = d[2]
-                    azimuth_raw = d[4]
+                    azimuth_raw = d[5]
                     elevation_corrected = d[3]
-                    elevation_raw = d[5]
+                    elevation_raw = d[6]
+                    boresight_corrected = d[4]
+                    boresight_raw = d[7]
+                    azimuth_motor_1 = d[8]
+                    azimuth_motor_2 = d[9]
+                    elevation_motor_1 = d[10]
+                    boresight_motor_1 = d[11]
+                    boresight_motor_2 = d[12]
                     self.data['broadcast'] = {'Time': data_ctime,
                                               'Azimuth_Corrected': azimuth_corrected,
                                               'Azimuth_Raw': azimuth_raw,
                                               'Elevation_Corrected': elevation_corrected,
                                               'Elevation_Raw': elevation_raw,
+                                              'Boresight_Corrected': boresight_corrected,
+                                              'Boresight_Raw': boresight_raw,
+                                              'Azimuth_Motor_1': azimuth_motor_1,
+                                              'Azimuth_Motor_2': azimuth_motor_2,
+                                              'Elevation_Motor_1': elevation_motor_1,
+                                              'Boresight_Motor_1': boresight_motor_1,
+                                              'Boresight_Motor_2': boresight_motor_2,
                                               }
                     acu_udp_stream = {'timestamp': self.data['broadcast']['Time'],
                                       'block_name': 'ACU_position',
@@ -469,6 +483,7 @@ class ACUAgent:
         yield self.acu.stop()
         self.log.info('Stopped')
         yield dsleep(0.1)
+        yield self.acu.mode('Preset')
         yield self.acu.go_to(az, el)
         mdata = self.data['status']['summary']
         # Wait for telescope to start moving
