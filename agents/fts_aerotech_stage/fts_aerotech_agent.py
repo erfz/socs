@@ -149,9 +149,9 @@ class FTSAerotechAgent:
             with open(config_file_path) as stream:
                 self.mirror_configs = yaml.safe_load(stream)
                 if self.mirror_configs is None:
-                    raise Exception(
-                        "No mirror configs in config file.")
-                self.log.info(f"Loaded mirror configs: {self.mirror_configs}")
+                    raise Exception( "No mirror configs in config file.")
+                self.log.info(
+                    f"Loaded mirror configs from file {config_file_path}")
                 self.translate = self.mirror_configs.pop('translate', None)
                 self.limits = self.mirror_configs.pop('limits', None)
                 # The other mirror configs (speed, timeout) are optional and
