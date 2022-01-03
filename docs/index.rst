@@ -43,6 +43,7 @@ Simulator Reference  Simulators are used to mock software and hardware
     agents/fts_agent
     agents/labjack
     agents/lakeshore240
+    agents/lakeshore336
     agents/lakeshore370
     agents/lakeshore372
     agents/latrt_xy_stage
@@ -61,6 +62,7 @@ Simulator Reference  Simulators are used to mock software and hardware
     :maxdepth: 2
 
     simulators/ls240_simulator
+    simulators/ls372_simulator
     simulators/smurf_stream_simulator
 
 .. toctree::
@@ -68,6 +70,7 @@ Simulator Reference  Simulators are used to mock software and hardware
     :maxdepth: 2
 
     developer/snmp
+    developer/testing
 
 Indices and tables
 ==================
