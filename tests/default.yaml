@@ -19,7 +19,7 @@ hosts:
       {'agent-class': 'Lakeshore425Agent',
       'instance-id': 'LS425',
       'arguments': [
-        ['--port', '/home/koopman/port1'],
+        ['--port', './responder'],
         ['--mode', 'acq'],
         ['--sampling-frequency', 1.],
       ]},
