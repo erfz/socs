@@ -20,7 +20,7 @@ hosts:
       'instance-id': 'LS425',
       'arguments': [
         ['--port', './responder'],
-        ['--mode', 'acq'],
+        ['--mode', 'init'],
         ['--sampling-frequency', 1.],
       ]},
     ]
