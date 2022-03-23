@@ -5,10 +5,20 @@ on:
     branches: [ develop ]
 
 jobs:
-  build:
-    runs-on: ubuntu-18.04
+  test:
+    name: pytest with coverage
+    runs-on: ubuntu-latest
 
     steps:
+    - name: Cancel Previous Runs
+      uses: styfle/cancel-workflow-action@0.9.1
+      with:
+        access_token: ${{ github.token }}
+
+    - name: Install system packages
+      run: |
+        sudo apt-get install -y socat
+
     - name: Set up Python 3.8 
       uses: actions/setup-python@v2
       with:
@@ -16,15 +26,9 @@ jobs:
 
     # (start steps from pytest workflow)
     # Install
-    - name: clone ocs
-      uses: actions/checkout@v2
-      with:
-        repository: 'simonsobs/ocs'
-
-    - name: Install ocs
+    - name: Install so3g
       run: |
-        pip3 install -r requirements.txt
-        pip3 install .
+        pip3 install so3g
 
     # Fetch all history for all tags and branches
     - name: clone socs
@@ -41,15 +45,11 @@ jobs:
     - name: Run unit tests
       working-directory: ./tests
       run: |
-        COVERAGE_FILE=.coverage.unit python3 -m pytest --cov -m 'not (integtest or spt3g)'
+        COVERAGE_FILE=.coverage.unit python3 -m pytest --cov -m 'not integtest'
 
     - name: Build docker test images
       run: |
         docker-compose build socs
-
-    - name: Test with spt3g dependent tests wtihin a docker container
-      run: |
-        docker run -v $PWD:/coverage --rm -w="/app/socs/tests/" socs sh -c "COVERAGE_FILE=/coverage/.coverage.docker python3 -m pytest --cov --order-dependencies -m 'spt3g'"
 
     # Integration Tests
     - name: Build images for integration tests
@@ -73,6 +73,18 @@ jobs:
         coveralls --service=github
     # (end steps from pytest workflow)
 
+  build:
+    name: build and deploy dev images
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    # Fetch all history for all tags and branches
+    - name: clone socs
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
     # Dockerize
     - name: Build docker images
       run: |
@@ -94,3 +106,40 @@ jobs:
         # Upload to docker registry
         docker-compose config | grep 'image: ' | awk -F ': ' '{ print $2 }' | xargs -I {} docker push ${DOCKERHUB_ORG}/{}:${DOCKER_TAG}
         docker-compose config | grep 'image: ' | awk -F ': ' '{ print $2 }' | xargs -I {} echo ${DOCKERHUB_ORG}/{}:${DOCKER_TAG} pushed
+
+  # testing so we can catch any issues before release
+  # if issues are found, test locally, or copy to pytest.yml for test on push
+  wheel:
+    name: build and test wheel
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: clone socs
+      uses: actions/checkout@v2
+
+    - name: install build dependencies
+      run: |
+        python3 -m pip install --upgrade build twine
+
+    - name: build wheel
+      run: |
+        python3 -m build
+
+    - name: install wheel
+      run: |
+        python3 -m pip install dist/socs*.whl
+
+    - name: install testing requirements
+      run: |
+        pip3 install -r requirements/testing.txt
+
+    - name: Run unit tests
+      working-directory: ./tests
+      run: |
+        python3 -m pytest -m 'not integtest'

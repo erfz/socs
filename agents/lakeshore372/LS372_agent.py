@@ -11,7 +11,7 @@ from twisted.internet import reactor
 from socs.Lakeshore.Lakeshore372 import LS372
 
 from ocs import ocs_agent, site_config
-from ocs.ocs_twisted import TimeoutLock
+from ocs.ocs_twisted import TimeoutLock, Pacemaker
 
 
 class YieldingLock:
@@ -237,6 +237,8 @@ class LS372_Agent:
                 }
 
         """
+        pm = Pacemaker(10, quantize=True)
+
         with self._acq_proc_lock.acquire_timeout(timeout=0, job='acq') \
              as acq_acquired, \
              self._lock.acquire_timeout(job='acq') as acquired:
@@ -258,6 +260,7 @@ class LS372_Agent:
 
             self.take_data = True
             while self.take_data:
+                pm.sleep()
 
                 # Relinquish sampling lock occasionally.
                 if time.time() - last_release > 1.:
@@ -986,7 +989,6 @@ def make_parser(parser=None):
     pgroup = parser.add_argument_group('Agent Options')
     pgroup.add_argument('--ip-address')
     pgroup.add_argument('--serial-number')
-    pgroup.add_argument('--mode')
     pgroup.add_argument('--fake-data', type=int, default=0,
                         help='Set non-zero to fake data, without hardware.')
     pgroup.add_argument('--dwell-time-delay', type=int, default=0,
@@ -998,8 +1000,9 @@ def make_parser(parser=None):
                               second if it is set longer than a channel's dwell\
                               time. This ensures at least one second of data\
                               collection at the end of a scan.")
-    pgroup.add_argument('--auto-acquire', action='store_true',
-                        help='Automatically start data acquisition on startup')
+    pgroup.add_argument('--mode', type=str, default='acq',
+                        choices=['idle', 'init', 'acq'],
+                        help="Starting action for the Agent.")
     pgroup.add_argument('--sample-heater', type=bool, default=False,
                         help='Record sample heater output during acquisition.')
     pgroup.add_argument('--enable-control-chan', action='store_true',
@@ -1020,7 +1023,10 @@ if __name__ == '__main__':
 
     # Automatically acquire data if requested (default)
     init_params = False
-    if args.auto_acquire:
+    if args.mode == 'init':
+        init_params = {'auto_acquire': False,
+                       'acq_params': {'sample_heater': args.sample_heater}}
+    elif args.mode == 'acq':
         init_params = {'auto_acquire': True,
                        'acq_params': {'sample_heater': args.sample_heater}}
 

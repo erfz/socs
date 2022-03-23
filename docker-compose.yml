@@ -48,6 +48,13 @@ services:
       - "socs"
 
   # --------------------------------------------------------------------------
+  # The Lakeshore 425 Agent
+  # --------------------------------------------------------------------------
+  ocs-lakeshore425-agent:
+    image: "ocs-lakeshore425-agent"
+    build: ./agents/lakeshore425/
+
+  # --------------------------------------------------------------------------
   # The Pysmurf Controller Agent
   # --------------------------------------------------------------------------
   ocs-pysmurf-agent:
@@ -170,6 +177,15 @@ services:
     build: ./agents/tektronix3021c/
     depends_on:
       - "socs"
+    
+  # --------------------------------------------------------------------------
+  # Pfeiffer Turbo Controller
+  # --------------------------------------------------------------------------
+  ocs-pfeiffer-tc400-agent:
+    image: "ocs-pfeiffer-tc400-agent"
+    build: ./agents/pfeiffer_tc400/
+    depends_on:
+      - "socs"
 
   # --------------------------------------------------------------------------
   # CHWP Encoder BBB agent
@@ -177,6 +193,19 @@ services:
   ocs-hwpbbb-agent:
     image: "ocs-hwpbbb-agent"
     build: ./agents/chwp/
+    depends_on:
+      - "socs"
+
+  # --------------------------------------------------------------------------
+  # Smurf file emulator agent
+  # --------------------------------------------------------------------------
+  ocs-smurf-file-emulator-agent:
+    image: "ocs-smurf-file-emulator-agent"
+    build: ./agents/smurf_file_emulator/
+
+  ocs-suprsync-agent:
+    image: 'ocs-suprsync-agent'
+    build: ./agents/suprsync/
     depends_on:
       - "socs"
 

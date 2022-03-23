@@ -46,16 +46,20 @@ Simulator Reference  Simulators are used to mock software and hardware
     agents/lakeshore336
     agents/lakeshore370
     agents/lakeshore372
+    agents/lakeshore425
     agents/latrt_xy_stage
     agents/meinberg_m1000_agent
     agents/pfeiffer
+    agents/pfeiffer_tc400
     agents/pysmurf/index
     agents/scpi_psu
     agents/smurf_crate_monitor
     agents/smurf_recorder
+    agents/suprsync
     agents/synacc
     agents/tektronix3021c
     agents/vantage_pro2
+    agents/smurf_file_emulator
 
 .. toctree::
     :caption: Simulator Reference

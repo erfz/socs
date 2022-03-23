@@ -92,7 +92,10 @@ autodoc_mock_imports = ['spt3g',
                         'xy_agent.xy_connect',
                         'soaculib',
                         'scan_helpers',
-                        'soaculib.twisted_backend']
+                        'soaculib.twisted_backend',
+                        'pfeiffer_vacuum_protocol',
+                        'pfeiffer_vacuum_protocol.pfeiffer_vacuum_protocol',
+                        ]
 from unittest import mock
 for m in autodoc_mock_imports:
     sys.modules[m] = mock.Mock()
