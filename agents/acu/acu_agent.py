@@ -224,18 +224,18 @@ class ACUAgent:
                                  record=True,
                                  agg_params=influx_agg_params,
                                  buffer_time=1)
-        self.agent.register_feed('acu_commands_az_influx',
-                                 record=True,
-                                 agg_params=influx_agg_params,
-                                 buffer_time=1)
-        self.agent.register_feed('acu_commands_el_influx',
-                                 record=True,
-                                 agg_params=influx_agg_params,
-                                 buffer_time=1)
-        self.agent.register_feed('acu_commands_bs_influx',
-                                 record=True,
-                                 agg_params=influx_agg_params,
-                                 buffer_time=1)
+#        self.agent.register_feed('acu_commands_az_influx',
+#                                 record=True,
+#                                 agg_params=influx_agg_params,
+#                                 buffer_time=1)
+#        self.agent.register_feed('acu_commands_el_influx',
+#                                 record=True,
+#                                 agg_params=influx_agg_params,
+#                                 buffer_time=1)
+#        self.agent.register_feed('acu_commands_bs_influx',
+#                                 record=True,
+#                                 agg_params=influx_agg_params,
+#                                 buffer_time=1)
         self.agent.register_feed('acu_udp_stream',
                                  record=True,
                                  agg_params=fullstatus_agg_params,
@@ -447,19 +447,19 @@ class ACUAgent:
                                          'block_name': 'ACU_commanded_position_azimuth',
                                          'data': {'Azimuth_commanded_position_influx': self.data['status']['commands']['Azimuth_commanded_position']}
                                          }
-                        self.agent.publish_to_feed('acu_commands_az_influx', acucommand_az)
+                        self.agent.publish_to_feed('acu_status_influx', acucommand_az)
                     if str(self.data['status']['commands']['Elevation_commanded_position']) != 'nan':
                         acucommand_el = {'timestamp': self.data['status']['summary']['ctime'],
                                          'block_name': 'ACU_commanded_position_elevation',
                                          'data': {'Elevation_commanded_position_influx': self.data['status']['commands']['Elevation_commanded_position']}
                                          }
-                        self.agent.publish_to_feed('acu_commands_el_influx', acucommand_el)
+                        self.agent.publish_to_feed('acu_status_influx', acucommand_el)
                     if str(self.data['status']['commands']['Boresight_commanded_position']) != 'nan':
                         acucommand_bs = {'timestamp': self.data['status']['summary']['ctime'],
                                          'block_name': 'ACU_commanded_position_boresight',
                                          'data': {'Boresight_commanded_position_influx': self.data['status']['commands']['Boresight_commanded_position']}
                                          }
-                        self.agent.publish_to_feed('acu_commands_bs_influx', acucommand_bs)
+                        self.agent.publish_to_feed('acu_status_influx', acucommand_bs)
             if self.data['uploads']['PtStack_Time'] == '000, 00:00:00.000000':
                 self.data['uploads']['PtStack_ctime'] = self.data['status']['summary']['ctime']
 
@@ -529,16 +529,11 @@ class ACUAgent:
             self.agent.publish_to_feed('acu_status_general_errs', acustatus_acufails)
             self.agent.publish_to_feed('acu_status_platform', acustatus_platform)
             self.agent.publish_to_feed('acu_status_emergency', acustatus_emergency)
-#            influx_status={'fake_data':1.0}
-            try:
-                self.agent.publish_to_feed('acu_status_influx', acustatus_influx, from_reactor=True)
-            #    print(acustatus_influx)
-            except:
-#                print(acustatus_influx)
-                print('failed')
-#        self.set_job_stop('monitor')
-#        yield dsleep(1)
-#        self.set_job_done('monitor')
+            self.agent.publish_to_feed('acu_status_influx', acustatus_influx, from_reactor=True)
+         #   print(self.data['status']['summary']['Elevation_current_position'])
+        self.set_job_stop('monitor')
+        yield dsleep(1)
+        self.set_job_done('monitor')
         return True, 'Acquisition exited cleanly.'
 
     @inlineCallbacks
@@ -565,16 +560,19 @@ class ACUAgent:
                 offset = 0
                 while len(data) - offset >= FMT_LEN:
                     d = struct.unpack(FMT, data[offset:offset+FMT_LEN])
+                   # print(data, len(data), FMT_LEN)
                     udp_data.append(d)
                     offset += FMT_LEN
+                #    yield dsleep(0.00001)
         handler = reactor.listenUDP(int(UDP_PORT), MonitorUDP())
         while self.jobs['broadcast'] == 'run':
             if udp_data:
                 process_data = udp_data[:200]
+               # print(len(process_data))
                 udp_data = udp_data[200:]
                 year = datetime.datetime.now().year
                 gyear = calendar.timegm(time.strptime(str(year), '%Y'))
-                if len(process_data):
+                if len(process_data)>1:
                     sample_rate = (len(process_data) /
                                   ((process_data[-1][0]-process_data[0][0])*86400
                                   + process_data[-1][1]-process_data[0][1]))
@@ -614,7 +612,7 @@ class ACUAgent:
                                       'block_name': 'ACU_broadcast',
                                       'data': self.data['broadcast']
                                       }
-                    #print(acu_udp_stream)
+                   # print(acu_udp_stream)
                     self.agent.publish_to_feed('acu_udp_stream',
                                                acu_udp_stream, from_reactor=True)
             else:
@@ -666,12 +664,16 @@ class ACUAgent:
 
         # Check whether the telescope is already at the point
         self.log.info('Checking current position')
+        self.log.info('Current position is %.2f, %.2f' % (current_az, current_el))
         if round(current_az, 1) == az and round(current_el, 1) == el:
             self.log.info('Already positioned at %.2f, %.2f'
                           % (current_az, current_el))
             self.set_job_done('control')
             return True, 'Pointing completed'
    #     yield self.acu.stop()
+   #     else:
+   #         self.log.info('Current position is %.2f, $.2f' % (current_az, current_el))
+        self.log.info('issuing stop command')
         yield self.acu_control.mode('Stop')
         self.log.info('Stopped')
         yield dsleep(0.5)
@@ -681,10 +683,24 @@ class ACUAgent:
         # Wait for telescope to start moving
         self.log.info('Moving to commanded position')
         yield dsleep(5)
+        wait_for_motion_start = time.time()
+        elapsed_wait_for_motion = 0
         while mdata['Azimuth_current_velocity'] == 0.0 and\
                 mdata['Elevation_current_velocity'] == 0.0:
-            yield dsleep(wait_for_motion)
-            mdata = self.data['status']['summary']
+            if elapsed_wait_for_motion < 30.:
+                print('velocity = 0.0')
+                yield dsleep(wait_for_motion)
+                elapsed_wait_for_motion = time.time() - wait_for_motion_start
+                mdata = self.data['status']['summary']
+            else:
+                if round(mdata['Azimuth_current_position'], 1) == az and round(mdata['Elevation_current_position'], 1) == el:
+                    yield self.acu_control.stop()
+                    self.set_job_done('control')
+                    return True, 'Pointing completed'
+                else:
+                    yield self.acu_control.stop()
+                    self.set_job_done('control')
+                    return False, 'Motion never occurred!'
         moving = True
         while moving:
             acu_upload = {'timestamp': self.data['status']['summary']['ctime'],
@@ -867,8 +883,8 @@ class ACUAgent:
             yield self.acu_control.azmode('ProgramTrack')
         else:
             yield self.acu_control.mode('ProgramTrack')
-        m = yield self.acu_control.mode()
-        print(m)
+   #     m = yield self.acu_control.mode()
+   #     print(m)
         self.log.info('mode is now ProgramTrack')
         group_size = 120
         spec = {'times': times,
