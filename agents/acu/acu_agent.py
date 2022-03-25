@@ -886,7 +886,7 @@ class ACUAgent:
    #     m = yield self.acu_control.mode()
    #     print(m)
         self.log.info('mode is now ProgramTrack')
-        group_size = 120
+        group_size = len(all_lines)#120
         spec = {'times': times,
                 'azs': azs,
                 'els': els,
