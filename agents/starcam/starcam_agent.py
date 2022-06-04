@@ -6,7 +6,7 @@ from os import environ
 import socket
 from ocs import ocs_agent, site_config, client_t, ocs_feed
 import argparse
-from ocs.ocs_twsited import TimeoutLock
+from ocs.ocs_twisted import TimeoutLock
 
 
 class starcam_Helper:
@@ -24,9 +24,8 @@ class starcam_Helper:
     def __init__(self,ip_address,user_port):
         self.ip = ip_address
         self.port = user_port
-        self.server_addr = (self.ip,self.port)
-        self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.socket.connect(self.server_addr)
+        self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.sock.connect((self.ip,self.port))
     
     def unpack_data(self,data):
         unpacked_data = struct.unpack_from("dddddddddddddiiiiiiiiddiiiiiiiiiiiiiifiii",data)
@@ -101,7 +100,7 @@ class starcam_Agent:
         if f_sample is None:
             f_sample = self.f_sample
         if f_sample %1 ==0:
-            pm = Pacemaker(f_sample.True)
+            pm = Pacemaker(f_sample,True)
         else:
             pm = Pacemaker(f_sample)
         wait_time = 1 / f_sample
@@ -178,7 +177,7 @@ class starcam_Agent:
             params
 
         """
-        logodds = params['logodds'])
+        logodds = params['logodds']
         latitude = params['latitude']
         longitude = params['longitude']
         height = params['height']
@@ -215,21 +214,18 @@ class starcam_Agent:
         
 def add_agent_args(parser_in=None):
     if parser_in is None:
-        from argparser import ArgumentParser as A
+        from argparse import ArgumentParser as A
         parser_in = A()
     pgroup = parser_in.add_argument_group('Agent Options')
-    pgroup.add_argument("--mode",default="idle",choices=['idle','acq'])
-    pgroup.add_argument("--ip_address",default="10.10.10.167",type=str,help="IP address of starcam computer")
-    pgroup.add_argument("--user_port",default="8000",type=str,help="Port of starcam computer")
+    pgroup.add_argument("--ip-address",default="10.10.10.167",type=str,help="IP address of starcam computer")
+    pgroup.add_argument("--user-port",default="8000",type=str,help="Port of starcam computer")
     return parser_in
 
 
 if __name__ =='__main__':
     parser = add_agent_args()
     args = site_config.parse_args(agent_class="starcam_Agent",parser=parser)
-    startup=False
-    if args.mode = 'connect':
-        startup=True
+    startup=True
     agent,runner = ocs_agent.init_site_agent(args)
     starcam_agent = starcam_Agent(agent,
             ip_address = args.ip_address,

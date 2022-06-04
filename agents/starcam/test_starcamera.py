@@ -6,18 +6,18 @@ import time
 
 
 logodds = 1e8
-latitude = 45.619471
-longitude = 9.220168
-height = 58.17
+latitude = 39.9502777778
+longitude = -75.1877777778
+height = 9.144
 exposure = 700
 timelimit = 1
 set_focus_to_amount = 0
-auto_focus_bool = 0
+auto_focus_bool = 1
 start_focus = 0
-end_focus = 1000
+end_focus = 0
 step_size = 5
 photos_per_focus = 3
-infinity_focus_bool = 1
+infinity_focus_bool = 0
 set_aperture_steps = 0
 max_aperture_bool = 0
 make_HP_bool = 0
